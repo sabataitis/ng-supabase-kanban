@@ -1,0 +1,17 @@
+<div class="modal">
+    <div class="modal-content">
+        <h1>Edit Task</h1>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+            <div>
+                <label for="title">title:</label>
+                <input type="text" formControlName="title" />
+            </div>
+            <div>
+                <label for="description">Description:</label>
+                <textarea rows="10" cols="10" formControlName="description"> </textarea>
+            </div>
+            <input [disabled]="form.invalid" type="submit" value="submit" />
+        </form>
+        <button (click)="closeModal()">Close</button>
+    </div>
+</div>

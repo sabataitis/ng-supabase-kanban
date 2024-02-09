@@ -1,0 +1,17 @@
+[
+    {
+        "id": "1",
+        "list_name": "list one",
+        "board_id": "1",
+    },
+    {
+        "id": "2",
+        "list_name": "list two",
+        "board_id": "1",
+    },
+    {
+        "id": "3",
+        "list_name": "list three",
+        "board_id": "1",
+    },
+]

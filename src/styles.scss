@@ -1,0 +1,25 @@
+main {
+    display: flex;
+    flex-direction: column;
+    margin: 0 auto; /* Center themain */
+    padding: 20px;
+}
+
+/* Responsive max-widths for different screen sizes */
+@media screen and (max-width: 600px) {
+    main {
+        max-width: 100%;
+    }
+}
+
+@media screen and (min-width: 601px) and (max-width: 900px) {
+    main {
+        max-width: 80%;
+    }
+}
+
+@media screen and (min-width: 901px) {
+    main {
+        max-width: 1200px;
+    }
+}

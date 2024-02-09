@@ -1,0 +1,83 @@
+[
+    {
+        "list_id": "1",
+        "list_name": "planned",
+        "list_pos": 0,
+        "tasks": [
+            {
+                "id": "1",
+                "task_name": "title one",
+                "assigned_to": "placeholder"
+            },
+            {
+                "id": "2",
+                "task_name": "title two",
+                "assigned_to": "placeholder"
+            },
+            {
+                "id": "3",
+                "task_name": "title three",
+                "assigned_to": "placeholder"
+            },
+            {
+                "id": "4",
+                "task_name": "title four",
+                "assigned_to": "placeholder"
+            }
+        ]
+    },
+    {
+        "list_id": "2",
+        "list_pos": 1,
+        "list_name": "in_progress",
+        "tasks": [
+            {
+                "id": "5",
+                "task_name": "title five",
+                "assigned_to": "placeholder"
+            },
+            {
+                "id": "6",
+                "task_name": "title six",
+                "assigned_to": "placeholder"
+            },
+            {
+                "id": "7",
+                "task_name": "title seven",
+                "assigned_to": "placeholder"
+            },
+            {
+                "id": "8",
+                "task_name": "title eight",
+                "assigned_to": "placeholder"
+            }
+        ]
+    },
+    {
+        "list_id": "3",
+        "list_name": "done",
+        "list_pos": 2,
+        "tasks": [
+            {
+                "id": "9",
+                "task_name": "title nine",
+                "assigned_to": "placeholder"
+            },
+            {
+                "id": "10",
+                "task_name": "title ten",
+                "assigned_to": "placeholder"
+            },
+            {
+                "id": "11",
+                "task_name": "title eleven",
+                "assigned_to": "placeholder"
+            },
+            {
+                "id": "12",
+                "task_name": "title twelve",
+                "assigned_to": "placeholder"
+            }
+        ]
+    }
+]

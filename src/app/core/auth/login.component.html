@@ -1,0 +1,30 @@
+<div>
+  <div aria-live="polite">
+    <h1 >Supabase + Angular</h1>
+    <p >Sign in with your email and pass below</p>
+    <form [formGroup]="signInForm" (ngSubmit)="onSubmit()">
+      <div>
+        <label for="email">Email</label>
+        <input
+          id="email"
+          formControlName="email"
+          type="email"
+          placeholder="Your email"
+        />
+      </div>
+      <div>
+        <label for="password">Password</label>
+        <input
+          id="password"
+          formControlName="password"
+          type="password"
+          placeholder="Your password"
+        />
+      </div>
+      <div>
+          <p *ngIf="error">{{error}}</p>
+          <input type="submit" [disabled]="signInForm.invalid" value="Submit">
+      </div>
+    </form>
+  </div>
+</div>
