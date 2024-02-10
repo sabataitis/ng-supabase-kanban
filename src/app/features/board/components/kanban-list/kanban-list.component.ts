@@ -20,7 +20,7 @@ import { List, Task } from '../../../../shared'
         <div
             cdkDropList
             (cdkDropListDropped)="taskPositionChange($event)"
-            [id]="list.position.toString()"
+            [id]="index.toString()"
             class="list"
         >
             <h2 class="list_name">{{ list.name }}</h2>
@@ -34,29 +34,29 @@ import { List, Task } from '../../../../shared'
         </div>
 
         <ng-template #dialog>
-            <div>
-                <label for="task_name">Task Name:</label>
-                <input
-                    type="text"
-                    id="task_name"
-                    name="task_name"
-                    formControl="form"
-                    #input
-                />
-                <input
-                    type="submit"
-                    value="add"
-                    (click)="taskAdd(input.value)"
-                />
+            <div class="dialog">
+            <input
+            type="text"
+            id="task_name"
+            name="task_name"
+            formControl="form"
+            placeholder="Enter a title for this task"
+                #input
+            />
+            <div class="buttons"> 
+                <button (click)="taskAdd(input.value)">add</button>
+                <button (click)="taskAddCancel()">cancel</button>
+            </div>
             </div>
         </ng-template>
     `,
-    styles: ``,
+    styleUrl: './kanban-list.component.scss'
 })
 export class KanbanListComponent {
     constructor(private modal: ModalService) {}
 
     @Input() list!: List & { tasks: Task[] }
+    @Input() index!: number
 
     @Output() onTaskPositionChange: EventEmitter<CdkDragDrop<Task[]>> =
         new EventEmitter()
@@ -73,6 +73,13 @@ export class KanbanListComponent {
 
     taskAdd(value: string) {
         this.onTaskAdd.emit(value);
+        this.showForm = false;
+        this.form.reset();
+    }
+
+    taskAddCancel() {
+        this.showForm = false;
+        this.form.reset();
     }
 
     taskClick(data: Task) {

@@ -3,7 +3,6 @@ import {
     BehaviorSubject,
     Observable,
     distinctUntilChanged,
-    of,
     skipWhile,
 } from 'rxjs'
 import {
@@ -37,9 +36,10 @@ export class TaskService {
                 `
                id,
                name,
-               lists(id, name, position, tasks(id, title, description))
+               lists(id, name, position, tasks(id, title, description, position))
        `
             )
+            .order('position', { referencedTable: 'lists.tasks', ascending: true })
             .eq('id', boardId)
             .then((res) => {
                 if (!res.error && res.data) {
@@ -51,7 +51,7 @@ export class TaskService {
             })
     }
 
-    create(data: CreateTaskPayload) {
+    async create(data: Omit<CreateTaskPayload, 'position'>) {
         // TODO implement endpoint
         const payload: InsertPayload<CreateTaskPayload> = {
             table: TABLES.tasks,
@@ -59,6 +59,9 @@ export class TaskService {
                 ...data,
             },
         }
+
+        const nextPosition = (await this.supabase.client.rpc('increment_task_position', { list_id_input: data.list_id })).data;
+        payload.values.position = nextPosition;
 
         this.api.insert<Task>(payload).then((res) => {
             if (!res.error && res.data) {
@@ -86,23 +89,52 @@ export class TaskService {
         })
     }
 
-    updatePos(payload: UpdateTaskPosPayload) {
+    async updateTaskPosition(data: UpdateTaskPosPayload) {
         const curr = this.stateSubject$.value!
 
-        const elementToMove = curr.lists[payload.prev_list_pos].tasks.splice(
-            payload.prev_pos,
-            1
-        )[0]
+        const find = curr.lists[data.prev_list_pos]?.tasks?.find(t=> t.id === data.id);
 
-        curr.lists[payload.curr_list_pos].tasks.splice(
-            payload.curr_pos,
-            0,
-            elementToMove
-        )
+        const curr_list = curr.lists[data.curr_list_pos];
 
-        this.stateSubject$.next(curr)
+        if(!find || !curr_list) {
+            throw Error('could not update position');
+        }
 
-        return of({ pos: payload.curr_pos })
+        const prev = curr_list.tasks[data.curr_pos - 1]?.position ||  0 ;
+        const next = curr_list.tasks[data.curr_pos]?.position || prev + 100;
+
+        const length = curr_list.tasks.length;
+        let position = prev + ((next - prev) / 2);
+
+        if(!length) {
+            position = 100;
+        } else if (length === data.curr_pos + 1) {
+            position = prev + 100;
+        }
+
+        const payload: UpdatePayload<Task> = {
+            table: TABLES.tasks,
+            values: { position, list_id: curr_list.id },
+            eq: { key: 'id', value: data.id },
+        }
+
+        this.api.update<Task>(payload).then((res)=> {
+            console.info({res});
+            if(!res.error && res.data) {
+                let curr = this.stateSubject$.value!
+
+                curr.lists[data.curr_list_pos].tasks.splice(
+                    data.curr_pos,
+                    0,
+                    curr.lists[data.prev_list_pos].tasks.splice(data.prev_pos, 1)[0]
+                )
+
+                this.stateSubject$.next(curr)
+            } else {
+                // TODO: err handling
+                console.warn('could not update task position', res);
+            }
+        })
     }
 
     update(data: UpdateTaskPayload) {

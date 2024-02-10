@@ -1,0 +1,13 @@
+.board {
+    display: flex;
+    gap: 10px;
+    margin: 0 1rem;
+
+    .toggle-list-block {
+        height: 100%;
+        display: flex;
+        justify-content: flex-start;
+        min-width: 250px;
+        flex-basis: 250px;
+    }
+}

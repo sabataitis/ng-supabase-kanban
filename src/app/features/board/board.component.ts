@@ -8,7 +8,7 @@ import {
     CdkDropListGroup,
 } from '@angular/cdk/drag-drop'
 
-import { Subject, take, takeUntil } from 'rxjs'
+import { Subject, takeUntil } from 'rxjs'
 
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import {
@@ -35,50 +35,51 @@ import { AuthService } from '../../core/services/auth.service'
         ReactiveFormsModule,
         KanbanListComponent,
     ],
-    styleUrl: './board.scss',
     template: `
-        <div class="groups" cdkDropListGroup>
+        <div class="board" cdkDropListGroup>
             <ng-container *ngIf="state$ | async as state">
                 <ng-container *ngIf="state.lists as lists">
-                    @for (list of lists; track list) {
+                    @for (list of lists; track list; let i = $index) {
                         <app-kanban-list
                             [list]="list"
+                            [index]="i"
                             (onTaskPositionChange)="
                                 taskPositionChange({ event: $event, lists })
                             "
                             (onTaskAdd)="addTask($event, list)"
-                            (onTaskChange)="updateTask($event, list)"
+                            (onTaskChange)="updateTask($event)"
                         ></app-kanban-list>
                     }
                 </ng-container>
 
                 <ng-container *ngIf="!toggleListDialog; else dialog">
+                    <div class="toggle-list-block"> 
                     <button (click)="toggleListDialog = !toggleListDialog">
                         Add new list
                     </button>
+                </div>
                 </ng-container>
             </ng-container>
         </div>
 
         <ng-template #dialog>
-                <div>
-                    <label for="list_name">List Name:</label>
+                <div class="dialog">
                     <input
                         type="text"
                         id="list_name"
                         name="list_name"
+                        placeholder="Enter a title for this list"
                         [formControl]="newListForm"
                         #listInput
                     />
-                    <input
-                        type="submit"
-                        value="add"
-                        (click)="addNewList(listInput.value)"
-                    />
+                    <div class="buttons"> 
+                    <button (click)="addNewList(listInput.value)">add</button>
+                    <button (click)="addNewListCancel()">cancel</button>
+                    </div>
                 </div>
         </ng-template>
     `,
-    styles: ``,
+    styleUrl: './board.component.scss'
 })
 export class BoardComponent implements OnInit, OnDestroy {
     constructor(
@@ -117,17 +118,19 @@ export class BoardComponent implements OnInit, OnDestroy {
         this.destroyRef$.next(null)
     }
 
-    async addNewList(name: string) {
-        this.taskService.createList(this.boardId, name).then(r=> {
+    addNewList(name: string) {
+        this.taskService.createList(this.boardId, name).then(() => {
             this.newListForm.reset()
             this.toggleListDialog = false
         });
     }
 
-    updateTask(
-        task: { id: string; title: string; description: string },
-        list: List
-    ) {
+    addNewListCancel() {
+        this.newListForm.reset()
+        this.toggleListDialog = false
+    }
+
+    updateTask(task: { id: string; title: string; description: string }) {
         const payload: UpdateTaskPayload = {
             ...task,
         }
@@ -136,12 +139,11 @@ export class BoardComponent implements OnInit, OnDestroy {
     }
 
     addTask(value: string, list: List & { tasks: Task[] }) {
-        const payload: CreateTaskPayload = {
+        const payload: Omit<CreateTaskPayload, 'position'> = {
             list_id: list.id,
             created_by: this.userId,
             title: value,
             description: '',
-            position: list.tasks.length,
         }
 
         this.taskService.create(payload)
@@ -154,20 +156,17 @@ export class BoardComponent implements OnInit, OnDestroy {
         const prev_list_pos = Number(previousContainer.id)
         const curr_list_pos = Number(container.id)
 
-        const prev_list = data.lists[prev_list_pos]
-        const curr_list = data.lists[curr_list_pos]
-
         const task_moved = data.lists[prev_list_pos].tasks[previousIndex]
 
         const payload: UpdateTaskPosPayload = {
             id: task_moved.id,
             curr_pos: currentIndex,
             prev_pos: previousIndex,
-            curr_list_pos: curr_list.position,
-            prev_list_pos: prev_list.position,
+            curr_list_pos,
+            prev_list_pos,
         }
 
-        this.taskService.updatePos(payload).pipe(take(1)).subscribe()
+        this.taskService.updateTaskPosition(payload);
     }
 }
 
