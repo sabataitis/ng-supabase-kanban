@@ -1,6 +1,11 @@
-import { Component, Inject } from '@angular/core'
+import {
+    Component,
+    ElementRef,
+    EventEmitter,
+    Output,
+    ViewChild,
+} from '@angular/core'
 
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import {
     FormControl,
     FormGroup,
@@ -9,39 +14,64 @@ import {
     Validators,
 } from '@angular/forms'
 import { Task } from '../../types'
+import { BehaviorSubject } from 'rxjs'
 
 @Component({
     selector: 'app-edit-task-modal',
     templateUrl: './edit-task-modal.component.html',
     standalone: true,
-    styleUrl: './edit-task-modal.component.scss',
     imports: [ReactiveFormsModule, FormsModule],
 })
 export class EditTaskModalComponent {
-    constructor(
-        public dialogRef: MatDialogRef<EditTaskModalComponent>,
-        @Inject(MAT_DIALOG_DATA) public data: Task
-    ) {
-        this.form.patchValue(data)
-    }
+    @ViewChild('modal') modalRef!: ElementRef
 
-    closeModal(): void {
-        this.dialogRef.close()
-    }
+    @Output() taskChange = new EventEmitter<Task>()
+
+    taskSnapshot$ = new BehaviorSubject<Task | null>(null)
 
     form = new FormGroup({
         title: new FormControl('', Validators.required),
         description: new FormControl(''),
     })
 
-    onSubmit() {
+    openModal(task: Task) {
+        this.taskSnapshot$.next(task)
+
+        this.modalRef.nativeElement.setAttribute('open', 'true')
+
+        this.form.patchValue({
+            title: task.title,
+            description: task.description,
+        })
+    }
+
+    protected handleClickOverlay(event: any) {
+        if (event.target === event.currentTarget) {
+            this.closeModal()
+        }
+    }
+
+    protected onSubmit() {
+        // TODO: add message
         if (this.form.invalid) return
 
-        const value = this.form.value
+        const formValue = this.form.value as any as Task
 
-        this.dialogRef.close({
-            ...this.data,
-            ...value,
-        })
+        const snapshot = this.taskSnapshot$.value as any as Task
+        const hasChanged = snapshot.title !== formValue.title || snapshot.description !== formValue.description;
+
+        if (hasChanged) {
+            this.closeModal()
+
+            this.taskChange.emit({
+                ...snapshot,
+                ...formValue,
+            })
+        }
+    }
+
+    protected closeModal() {
+        this.modalRef.nativeElement.setAttribute('open', 'false')
+        this.form.reset()
     }
 }

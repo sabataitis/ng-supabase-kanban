@@ -150,8 +150,9 @@ export class TaskService {
             },
         }
 
+        console.info({payload});
+
         this.api.update<Task>(payload).then((res)=> {
-            console.info({res});
             if(!res.error && res.data) {
                 let curr = this.stateSubject$.value!
 

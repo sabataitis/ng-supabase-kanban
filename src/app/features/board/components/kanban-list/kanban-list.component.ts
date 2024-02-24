@@ -1,9 +1,8 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core'
+import { Component, EventEmitter, Input, Output, ViewChild } from '@angular/core'
 import { CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop'
 import { KanbanTaskComponent } from '../kanban-task/kanban-task.component'
 import { FormControl } from '@angular/forms'
 import { CommonModule } from '@angular/common'
-import { ModalService } from '../../../../shared/services/modal.service'
 import { EditTaskModalComponent } from '../../../../shared/components/edit-task/edit-task-modal.component'
 import { List, Task } from '../../../../shared'
 import { InputDialogComponent } from '../../../../shared/components/input-dialog/input-dialog.component'
@@ -43,10 +42,11 @@ import { InputDialogComponent } from '../../../../shared/components/input-dialog
             >
             </app-input-dialog>
         </div>
+        <app-edit-task-modal #modal (taskChange)="taskChange($event)"> </app-edit-task-modal>
     `,
 })
 export class KanbanListComponent {
-    constructor(private modal: ModalService) {}
+    @ViewChild('modal') modal!: EditTaskModalComponent
 
     @Input() list!: List & { tasks: Task[] }
     @Input() index!: number
@@ -77,13 +77,11 @@ export class KanbanListComponent {
         this.showForm = false
     }
 
-    taskClick(data: Task) {
-        const ref = this.modal.open(EditTaskModalComponent, { data })
+    taskClick(task: Task) {
+        this.modal.openModal(task)
+    }
 
-        ref.afterClosed().subscribe((data) => {
-            if (data) {
-                this.onTaskChange.emit(data)
-            }
-        })
+    taskChange(data: Task) {
+        this.onTaskChange.emit(data)
     }
 }

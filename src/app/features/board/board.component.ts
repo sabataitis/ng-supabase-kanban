@@ -10,7 +10,7 @@ import {
 
 import { Subject, takeUntil } from 'rxjs'
 
-import { FormControl, ReactiveFormsModule } from '@angular/forms'
+import { ReactiveFormsModule } from '@angular/forms'
 import {
     CreateTaskPayload,
     TaskService,
