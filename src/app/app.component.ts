@@ -17,13 +17,13 @@ import { User } from './shared'
     `,
     styles: [],
 })
-export class AppComponent implements OnInit{
-    constructor(private auth: AuthService, private router: Router) {}
+export class AppComponent implements OnInit {
+    constructor(private auth: AuthService, private router: Router) { }
 
     currentUser$ = this.auth.userObservable$ as Observable<User | null>;
 
     ngOnInit() {
-        this.auth.getCurrentSession();
+        this.auth.getCurrentSession()
     }
 
     logout() {
