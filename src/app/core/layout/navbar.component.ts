@@ -9,49 +9,27 @@ import { User } from '../../shared'
     imports: [RouterModule, CommonModule, RouterLink],
     providers: [],
     template: `
-        <nav class="navbar">
-            <ng-container *ngIf="current; else auth">
-                <a routerLink="">dashboard</a>
-                <div class="group">
-                    <p>{{ current.name }}</p>
-                    <a (click)="logout.emit()" style="cursor: pointer"
-                        >Log Out</a
-                    >
-                </div>
-            </ng-container>
-
-            <ng-template #auth>
-                <div class="auth-links">
-                    <a [routerLink]="['login']">Login</a>
-                    <a [routerLink]="['register']">Register</a>
-                </div>
-            </ng-template>
+        <nav>
+            <ul>
+                <li><strong>ng supabase</strong></li>
+            </ul>
+            <ul *ngIf="current; else auth">
+                <li><a href="#">dashboard</a></li>
+                <li><a (click)="logout.emit()">logout</a></li>
+                <li>
+                    <a href="#">{{ current.name }}</a>
+                </li>
+            </ul>
         </nav>
-    `,
-    styles: `
-.navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: 1px solid lightgrey;
-
-  margin-bottom: 1rem;
-  padding: 1rem;
-
-  .group {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-  }
-}
-
-.navbar a {
-  text-decoration: none;
-}
+        <ng-template #auth>
+            <ul>
+                <li><a [routerLink]="['login']">login</a></li>
+                <li><a [routerLink]="['register']">register</a></li>
+            </ul>
+        </ng-template>
     `,
 })
 export class NavbarComponent {
     @Input() current!: User | null
-
     @Output() logout: EventEmitter<void> = new EventEmitter()
 }

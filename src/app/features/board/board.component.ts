@@ -19,8 +19,10 @@ import {
 } from './services/task.service'
 import { KanbanTaskComponent } from './components/kanban-task/kanban-task.component'
 import { KanbanListComponent } from './components/kanban-list/kanban-list.component'
+
 import { List, Task } from '../../shared'
 import { AuthService } from '../../core/services/auth.service'
+import { InputDialogComponent } from '../../shared/components/input-dialog/input-dialog.component'
 
 @Component({
     selector: 'app-board',
@@ -34,52 +36,37 @@ import { AuthService } from '../../core/services/auth.service'
         KanbanTaskComponent,
         ReactiveFormsModule,
         KanbanListComponent,
+        InputDialogComponent,
     ],
     template: `
-        <div class="board" cdkDropListGroup>
-            <ng-container *ngIf="state$ | async as state">
-                <ng-container *ngIf="state.lists as lists">
-                    @for (list of lists; track list; let i = $index) {
-                        <app-kanban-list
-                            [list]="list"
-                            [index]="i"
-                            (onTaskPositionChange)="
-                                taskPositionChange({ event: $event, lists })
-                            "
-                            (onTaskAdd)="addTask($event, list)"
-                            (onTaskChange)="updateTask($event)"
-                        ></app-kanban-list>
-                    }
-                </ng-container>
+        <div class="lists" *ngIf="state$ | async as state" cdkDropListGroup>
+            @for (list of state.lists; track list; let i = $index) {
+                <app-kanban-list
+                    [list]="list"
+                    [index]="i"
+                    (onTaskPositionChange)="
+                        taskPositionChange({
+                            event: $event,
+                            lists: state.lists
+                        })
+                    "
+                    (onTaskAdd)="addTask($event, list)"
+                    (onTaskChange)="updateTask($event)"
+                ></app-kanban-list>
+            }
 
-                <ng-container *ngIf="!toggleListDialog; else dialog">
-                    <div class="toggle-list-block"> 
-                    <button (click)="toggleListDialog = !toggleListDialog">
-                        Add new list
-                    </button>
-                </div>
-                </ng-container>
-            </ng-container>
+            <button *ngIf="!showForm" (click)="showForm = !showForm">
+                add new list
+            </button>
+
+            <app-input-dialog
+                *ngIf="showForm"
+                (submit)="addNewList($event)"
+                (cancel)="addNewListCancel()"
+            >
+            </app-input-dialog>
         </div>
-
-        <ng-template #dialog>
-                <div class="dialog">
-                    <input
-                        type="text"
-                        id="list_name"
-                        name="list_name"
-                        placeholder="Enter a title for this list"
-                        [formControl]="newListForm"
-                        #listInput
-                    />
-                    <div class="buttons"> 
-                    <button (click)="addNewList(listInput.value)">add</button>
-                    <button (click)="addNewListCancel()">cancel</button>
-                    </div>
-                </div>
-        </ng-template>
     `,
-    styleUrl: './board.component.scss'
 })
 export class BoardComponent implements OnInit, OnDestroy {
     constructor(
@@ -89,14 +76,12 @@ export class BoardComponent implements OnInit, OnDestroy {
 
     private destroyRef$ = new Subject()
 
-    newListForm = new FormControl('')
+    showForm = false
 
     state$ = this.taskService.state$.pipe(takeUntil(this.destroyRef$))
 
     boardId!: string
     userId!: string
-
-    toggleListDialog = false
 
     @Input()
     set id(boardId: string) {
@@ -120,14 +105,12 @@ export class BoardComponent implements OnInit, OnDestroy {
 
     addNewList(name: string) {
         this.taskService.createList(this.boardId, name).then(() => {
-            this.newListForm.reset()
-            this.toggleListDialog = false
-        });
+            this.showForm = false
+        })
     }
 
     addNewListCancel() {
-        this.newListForm.reset()
-        this.toggleListDialog = false
+        this.showForm = false
     }
 
     updateTask(task: { id: string; title: string; description: string }) {
@@ -166,7 +149,7 @@ export class BoardComponent implements OnInit, OnDestroy {
             prev_list_pos,
         }
 
-        this.taskService.updateTaskPosition(payload);
+        this.taskService.updateTaskPosition(payload)
     }
 }
 

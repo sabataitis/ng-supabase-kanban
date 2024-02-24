@@ -13,7 +13,9 @@ import { User } from './shared'
     styleUrls: ['./app.component.scss'],
     template: `
         <app-navbar (logout)="logout()" [current]="currentUser$ | async"></app-navbar>
-        <router-outlet></router-outlet>
+        <main>
+            <router-outlet></router-outlet>
+        </main>
     `,
     styles: [],
 })

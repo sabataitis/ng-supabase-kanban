@@ -191,7 +191,6 @@ export class TaskService {
         }
 
         return this.api.insert<List>(payload).then((res) => {
-            console.info({res});
             if (!res.error && res.data) {
                 const inserted = res.data[0]
 

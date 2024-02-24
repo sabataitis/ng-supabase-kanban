@@ -38,13 +38,9 @@ export class DashboardService {
             },
         };
 
-        console.info({payload});
-
         this.api.insert<Board>(payload).then(res=> {
             if(!res.error && res.data) {
                 let curr = this.boardsSubject$.value;
-
-                console.info({res});
 
                 const inserted = res.data[0];
                 if(inserted) {
@@ -60,4 +56,3 @@ export class DashboardService {
 }
 
 export type CreateBoardPayload = Omit<Board, 'id'>
-
