@@ -39,7 +39,11 @@ export class RegisterComponent {
     const email = form.email;
     const password = form.password;
 
-    await this.auth.register(email, password);
-    this.registerForm.reset();
+    const res = await this.auth.register(email, password);
+    if(res.ok) {
+        alert('User registered successfully! Check your email');
+        this.registerForm.reset();
+    }
+    alert('Could not register, please try again later');
   }
 }

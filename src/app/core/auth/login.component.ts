@@ -34,7 +34,7 @@ export class LoginComponent {
 
         const res: AuthTokenResponsePassword = await this.auth.login(email!, password!);
 
-        if(res.error) {
+        if (res.error) {
             this.error = res.error.message;
         } else {
             this.route.navigate(['/dashboard']);

@@ -49,12 +49,14 @@ export class AuthService {
         })
     }
 
-    async register(email: string, password: string): Promise<void> {
+    async register(email: string, password: string): Promise<{ ok: boolean }> {
         try {
             const res = await this.supabase.client.auth.signUp({ email, password })
             if(res.error) throw new Error(res.error.message);
+            return { ok: true };
         } catch(e) {
             console.warn("Error registering:", e);
+            return { ok: false };
         }
     }
 
