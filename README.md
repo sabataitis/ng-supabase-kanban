@@ -144,26 +144,14 @@ create policy "Individuals can insert a task on their board" on tasks
     )
   ));
 
-create policy "Individuals can view a task on their board" on tasks 
-  for select to authenticated using (auth.uid() in (
-    select created_by from boards where boards.id = (
-      select board_id from lists where lists.id = tasks.list_id
-    )
-  ));
+create policy "Individuals can view their own task." on tasks 
+  for select to authenticated using (auth.uid() = created_by);
 
-create policy "Individuals can update a task on their board" on tasks
-  for update to authenticated using (auth.uid() in (
-    select created_by from boards where boards.id = (
-      select board_id from lists where lists.id = tasks.list_id
-    )
-  ));
+create policy "Individuals can update their own task." on tasks 
+  for update to authenticated using (auth.uid() = created_by);
 
-create policy "Individuals can remove a task on their board" on tasks
-  for delete to authenticated using (auth.uid() in (
-    select created_by from boards where boards.id = (
-      select board_id from lists where lists.id = tasks.list_id
-    )
-  ));
+create policy "Individuals can remove their own task." on tasks 
+  for delete to authenticated using (auth.uid() = created_by);
 ```
 
 rls for users
