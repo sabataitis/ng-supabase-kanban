@@ -8,8 +8,8 @@
             <label for="description">Description:</label>
             <textarea rows="10" cols="10" formControlName="description"> </textarea>
         </div>
-        <div>
-            <button [disabled]="form.invalid" type="submit">submit</button>
+        <div class="button-group">
+            <button [disabled]="form.invalid">submit</button>
             <button aria-label="Close" rel="prev" (click)="closeModal()">Close</button>
         </div>
     </form>

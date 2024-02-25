@@ -3,9 +3,9 @@ import { CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop'
 import { KanbanTaskComponent } from '../kanban-task/kanban-task.component'
 import { FormControl } from '@angular/forms'
 import { CommonModule } from '@angular/common'
-import { EditTaskModalComponent } from '../../../../shared/components/edit-task/edit-task-modal.component'
 import { List, Task } from '../../../../shared'
 import { InputDialogComponent } from '../../../../shared/components/input-dialog/input-dialog.component'
+import { EditTaskModalComponent } from '../edit-task-modal/edit-task-modal.component'
 
 @Component({
     selector: 'app-kanban-list',

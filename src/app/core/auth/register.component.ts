@@ -7,7 +7,6 @@ import {
   Validators,
 } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { AuthResponse } from '@supabase/supabase-js';
 import { AuthService } from '../services/auth.service';
 
 @Component({
@@ -40,14 +39,7 @@ export class RegisterComponent {
     const email = form.email;
     const password = form.password;
 
-    try {
-        const res: AuthResponse = await this.auth.register(email, password);
-        if(res.error) throw res.error;
-        alert('Check email for verification link!');
-    } catch (e) {
-        console.warn({status: 'error encountered', e})
-    } finally {
-        this.registerForm.reset();
-    }
+    await this.auth.register(email, password);
+    this.registerForm.reset();
   }
 }

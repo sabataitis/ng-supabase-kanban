@@ -12,7 +12,7 @@ export class DashboardService {
 
     constructor(private api: SupabaseApiService) {}
 
-    getBoards(userId: string): void {
+    async getBoards(userId: string): Promise<void> {
         this.boardsSubject$.next(null)
 
         const payload: SelectPayload<Board> = {
@@ -21,16 +21,17 @@ export class DashboardService {
             eq: { key: 'created_by', value: userId }
         }
 
-        this.api.select<Board>(payload).then(res=> {
-            if(!res.error && res.data) {
-                this.boardsSubject$.next(res.data);
-            } else {
-                this.boardsSubject$.next(null);
-            }
-        });
+        try {
+            const res = await this.api.select<Board>(payload)
+            if(res.error) throw new Error(res.error.message);
+
+            this.boardsSubject$.next(res.data || null);
+        } catch(e) {
+            console.info("Error fetching boards: ", e);
+        }
     }
 
-    createBoard(data: CreateBoardPayload) {
+    async createBoard(data: CreateBoardPayload) {
         const payload: InsertPayload<CreateBoardPayload> = {
             table: TABLES.boards,
             values: {
@@ -38,20 +39,21 @@ export class DashboardService {
             },
         };
 
-        this.api.insert<Board>(payload).then(res=> {
-            if(!res.error && res.data) {
-                let curr = this.boardsSubject$.value;
+        try {
+            const res = await this.api.insert<Board>(payload);
+            if(res.error) throw new Error(res.error.message);
 
-                const inserted = res.data[0];
-                if(inserted) {
-                    curr ? curr.push(inserted) : curr = [inserted];
-                    this.boardsSubject$.next(curr);
-                }
+            // update state
+            const inserted = res.data[0];
+            if(!inserted) throw new Error('No data returned from insert');
 
-            } else {
-                // err handling
-            }
-        })
+            let state = this.boardsSubject$.value;
+            state ? state.push(res.data[0]) : state = [res.data[0]];
+            this.boardsSubject$.next(state);
+
+        } catch(e) {
+            console.info("Could not create board ", e);
+        }
     }
 }
 

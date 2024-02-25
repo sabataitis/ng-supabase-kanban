@@ -13,6 +13,7 @@ import {
 import { TABLES } from '../../../shared/constants/tables'
 import { SupabaseInitService } from '../../../core/services/supabase-init.service'
 import { List, Task } from '../../../shared'
+import { PostgrestResponse } from '@supabase/supabase-js'
 
 @Injectable()
 export class TaskService {
@@ -29,115 +30,138 @@ export class TaskService {
         private supabase: SupabaseInitService
     ) {}
 
-    fetchAll(boardId: string): void {
-        this.supabase.client
-            .from('boards')
-            .select(
+    async fetchAll(boardId: string): Promise<void> {
+        try {
+            const res = await this.supabase.client
+                .from('boards')
+                .select(
+                    `
+                id,
+                name,
+                lists(id, name, position, tasks(id, title, description, position))
                 `
-               id,
-               name,
-               lists(id, name, position, tasks(id, title, description, position))
-       `
-            )
-            .order('position', { referencedTable: 'lists.tasks', ascending: true })
-            .eq('id', boardId)
-            .then((res) => {
-                if (!res.error && res.data) {
-                    const data = res.data[0] as any as BoardListsAndTasksResponse
-                    this.stateSubject$.next(data)
-                } else {
-                    this.stateSubject$.next(null)
-                }
-            })
+                )
+                .order('position', {
+                    referencedTable: 'lists.tasks',
+                    ascending: true,
+                })
+                .eq('id', boardId)
+
+            if (res.error) throw new Error(res.error.message)
+
+            const data = res.data[0] as any as BoardListsAndTasksResponse
+            this.stateSubject$.next(data || null)
+        } catch (e) {
+            console.warn('Error fetching tasks:', e)
+            this.stateSubject$.next(null)
+        }
     }
 
     async create(data: Omit<CreateTaskPayload, 'position'>) {
-        // TODO implement endpoint
-        const payload: InsertPayload<CreateTaskPayload> = {
-            table: TABLES.tasks,
-            values: {
-                ...data,
-            },
+        try {
+            // retrieve the next position for insert
+            const increment = await this.supabase.client.rpc('increment_task_position', { list_id_input: data.list_id });
+            if(increment.error) throw new Error(increment.error.message);
+
+            const nextPosition = increment.data;
+
+            const payload: InsertPayload<CreateTaskPayload> = {
+                table: TABLES.tasks,
+                values: { ...data, position: nextPosition },
+            }
+
+            const res: PostgrestResponse<Task> = await this.api.insert<Task>(payload);
+            if(res.error) throw new Error(res.error.message);
+
+            // update state
+            const task = res.data[0];
+            const curr = this.stateSubject$.value
+
+            if (curr && curr.lists.length) {
+                this.stateSubject$.next({
+                    ...curr,
+                    lists: curr.lists.map((c) => {
+                        if (c.id === data.list_id) {
+                            c.tasks.push(task)
+                            return c
+                        }
+                        return c
+                    }),
+                })
+            }
+        } catch(e) {
+            console.warn('could not create task ->', e)
+        }
+    }
+
+    validateUpdateTaskPositionPayload(state: BoardListsAndTasksResponse, data: UpdateTaskPosPayload) {
+        // checks if such task exists in the previous list
+        const find = state.lists[data.prev_list_pos]?.tasks?.find(
+            (t) => t.id === data.id
+        )
+
+        const curr_list = state.lists[data.curr_list_pos]
+
+        if (!find || !curr_list) {
+            throw Error('could not update position')
+        }
+    }
+
+    calculateUpdatedTaskPosition(state: BoardListsAndTasksResponse, data: UpdateTaskPosPayload) {
+        const curr_list = state.lists[data.curr_list_pos]
+
+        const prev = curr_list.tasks[data.curr_pos - 1]?.position || 0
+        const next = curr_list.tasks[data.curr_pos]?.position || prev + 100
+
+        const length = curr_list.tasks.length
+        
+        // floating point precision, calculate mid point
+        let position = prev + (next - prev) / 2
+
+        if (!length) {
+            position = 100
+        } else if (length === data.curr_pos + 1) {
+            position = prev + 100
         }
 
-        const nextPosition = (await this.supabase.client.rpc('increment_task_position', { list_id_input: data.list_id })).data;
-        payload.values.position = nextPosition;
-
-        this.api.insert<Task>(payload).then((res) => {
-            if (!res.error && res.data) {
-                const curr = this.stateSubject$.value
-
-                const task = res.data[0] as Task
-
-                if (curr && curr.lists.length) {
-                    // update state on response TODO
-                    this.stateSubject$.next({
-                        ...curr,
-                        lists: curr.lists.map((c) => {
-                            if (c.id === data.list_id) {
-                                c.tasks.push(task)
-                                return c
-                            }
-                            return c
-                        }),
-                    })
-                }
-            } else {
-                // TODO: err handling
-                console.warn('could not create task ->', res.error);
-            }
-        })
+        return position
     }
+
 
     async updateTaskPosition(data: UpdateTaskPosPayload) {
-        const curr = this.stateSubject$.value!
+        try {
+            const state = this.stateSubject$.value!;
 
-        const find = curr.lists[data.prev_list_pos]?.tasks?.find(t=> t.id === data.id);
+            this.validateUpdateTaskPositionPayload(state, data);
+            const position = this.calculateUpdatedTaskPosition(state, data);
 
-        const curr_list = curr.lists[data.curr_list_pos];
-
-        if(!find || !curr_list) {
-            throw Error('could not update position');
-        }
-
-        const prev = curr_list.tasks[data.curr_pos - 1]?.position ||  0 ;
-        const next = curr_list.tasks[data.curr_pos]?.position || prev + 100;
-
-        const length = curr_list.tasks.length;
-        let position = prev + ((next - prev) / 2);
-
-        if(!length) {
-            position = 100;
-        } else if (length === data.curr_pos + 1) {
-            position = prev + 100;
-        }
-
-        const payload: UpdatePayload<Task> = {
-            table: TABLES.tasks,
-            values: { position, list_id: curr_list.id },
-            eq: { key: 'id', value: data.id },
-        }
-
-        this.api.update<Task>(payload).then((res)=> {
-            console.info({res});
-            if(!res.error && res.data) {
-                let curr = this.stateSubject$.value!
-
-                curr.lists[data.curr_list_pos].tasks.splice(
-                    data.curr_pos,
-                    0,
-                    curr.lists[data.prev_list_pos].tasks.splice(data.prev_pos, 1)[0]
-                )
-
-                this.stateSubject$.next(curr)
-            } else {
-                // TODO: err handling
-                console.warn('could not update task position', res);
+            const payload: UpdatePayload<Task> = {
+                table: TABLES.tasks,
+                values: { position, list_id: state.lists[data.curr_list_pos].id },
+                eq: { key: 'id', value: data.id },
             }
-        })
+
+            const update = await this.api.update<Task>(payload);
+            if(update.error) throw new Error(update.error.message);
+
+            // update state
+            state.lists[data.curr_list_pos].tasks.splice(
+                data.curr_pos,
+                0,
+                state.lists[data.prev_list_pos].tasks.splice(
+                    data.prev_pos,
+                    1
+                )[0]
+            )
+
+            this.stateSubject$.next(state)
+
+        } catch(e) {
+            console.warn('Could not update task position', e)
+        }
     }
 
-    update(data: UpdateTaskPayload) {
+    async update(data: UpdateTaskPayload) {
         const payload: UpdatePayload<Task> = {
             table: TABLES.tasks,
             values: {
@@ -150,61 +174,57 @@ export class TaskService {
             },
         }
 
-        console.info({payload});
+        try {
+            const res = await this.api.update<Task>(payload);
+            if(res.error) throw new Error(res.error.message);
 
-        this.api.update<Task>(payload).then((res)=> {
-            if(!res.error && res.data) {
-                let curr = this.stateSubject$.value!
-
-                const task = res.data[0] as Task;
-                const { id, list_id } = task;
-
-                curr = {
-                    ...curr,
-                    lists: curr.lists.map((v) => {
-                        if (v.id === list_id) {
-                            const idx = v.tasks.findIndex((t) => t.id === id)
-                            if (idx !== -1) {
-                                v.tasks[idx] = task
-                                return v
-                            }
+            let state = this.stateSubject$.value!;
+            const task = res.data[0] as Task;
+            // update state
+            state = {
+                ...state,
+                lists: state!.lists.map((v) => {
+                    if (v.id === task.list_id) {
+                        const idx = v.tasks.findIndex((t) => t.id === task.id)
+                        if (idx !== -1) {
+                            v.tasks[idx] = task
+                            return v
                         }
-                        return v
-                    }),
-                }
-            } else {
-                // TODO: err handling
-                console.warn('could not update task', res);
+                    }
+                    return v
+                }),
             }
-        })
+        } catch(e) {
+            console.warn("Could not update task", e)
+        }
     }
 
-    createList(boardId: string, name: string) {
-        let curr = this.stateSubject$.value
+    async createList(boardId: string, name: string) {
+        let state = this.stateSubject$.value
 
         const payload: InsertPayload<CreateListPayload> = {
             table: TABLES.lists,
             values: {
                 board_id: boardId,
                 name,
-                position: curr?.lists.length || 0,
+                position: state?.lists.length || 0,
             },
         }
 
-        return this.api.insert<List>(payload).then((res) => {
-            if (!res.error && res.data) {
-                const inserted = res.data[0]
+        try {
+            const res = await this.api.insert<List>(payload);
+            if(res.error) throw new Error(res.error.message);
 
-                if (inserted) {
-                    const toListWithTasks = { ...inserted, tasks: [] }
-                    curr!.lists.push(toListWithTasks)
-                    this.stateSubject$.next(curr)
-                }
-            } else {
-                // TODO: err handling
-                console.warn('could not create list', res);
+            const inserted = res.data[0] || null;
+            if(inserted) {
+                // update state
+                state!.lists.push({ ...inserted, tasks: [] })
+                this.stateSubject$.next(state);
             }
-        })
+
+        } catch(e) {
+            console.warn("Could not insert list ", e);
+        }
     }
 }
 
@@ -212,9 +232,9 @@ export type CreateListPayload = Omit<List, 'id'>
 export type CreateTaskPayload = Omit<Task, 'id'>
 
 export type UpdateTaskPayload = {
-    id: string,
-    title: string,
-    description: string,
+    id: string
+    title: string
+    description: string
 }
 
 export type UpdateTaskPosPayload = {
@@ -228,5 +248,5 @@ export type UpdateTaskPosPayload = {
 export type BoardListsAndTasksResponse = {
     id: string
     name: string
-    lists: (List & { tasks: Task[] })[],
+    lists: (List & { tasks: Task[] })[]
 }

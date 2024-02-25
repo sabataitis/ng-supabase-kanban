@@ -53,8 +53,7 @@
 							"src/assets"
 						],
 						"styles": [
-							"src/styles.scss",
-							"src/assets/pico/css/pico.min.css",
+							"src/styles.scss"
 						],
 						"scripts": []
 					},

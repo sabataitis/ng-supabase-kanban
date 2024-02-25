@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { AuthResponse, User as SupabaseUser } from '@supabase/supabase-js'
+import { AuthError, AuthTokenResponsePassword, User as SupabaseUser, UserResponse } from '@supabase/supabase-js'
 import { BehaviorSubject, Observable, skipWhile } from 'rxjs'
 import { SupabaseInitService } from './supabase-init.service'
 import { User } from '../../shared'
@@ -14,24 +14,21 @@ export class AuthService {
     supabaseStream$: BehaviorSubject<SupabaseUser | null | undefined> =
         new BehaviorSubject<SupabaseUser | null | undefined>(undefined)
     supabaseObservable$: Observable<SupabaseUser | null | undefined> =
-        this.supabaseStream$
-            .asObservable()
-            .pipe(skipWhile((v) => typeof v === 'undefined'))
+        this.supabaseStream$.pipe(skipWhile((v) => typeof v === 'undefined'))
 
     userStream$: BehaviorSubject<User | null | undefined> = new BehaviorSubject<
         User | null | undefined
     >(undefined)
-    userObservable$: Observable<User | null | undefined> = this.userStream$
-        .asObservable()
-        .pipe(skipWhile((v) => typeof v === 'undefined'))
+    userObservable$: Observable<User | null | undefined> = this.userStream$.pipe(skipWhile((v) => typeof v === 'undefined'))
 
-    getCurrentSession() {
-        // Get initial user from the current session, if exists
-        this.supabase.client.auth.getUser().then(({ data, error }) => {
-            this.supabaseStream$.next(
-                data && data.user && !error ? data.user : null
-            )
-        })
+    async getCurrentSession() {
+        try {
+            const session: UserResponse = await this.supabase.client.auth.getUser();
+            this.supabaseStream$.next(session?.data?.user ?? null)
+
+        } catch (error) {
+            this.supabaseStream$.next(null)
+        }
     }
 
     subscribeToSupabaseState() {
@@ -52,25 +49,44 @@ export class AuthService {
         })
     }
 
-    register(email: string, password: string): Promise<AuthResponse> {
-        return this.supabase.client.auth.signUp({ email, password })
+    async register(email: string, password: string): Promise<void> {
+        try {
+            const res = await this.supabase.client.auth.signUp({ email, password })
+            if(res.error) throw new Error(res.error.message);
+        } catch(e) {
+            console.warn("Error registering:", e);
+        }
     }
 
-    login(email: string, password: string) {
+    async login(email: string, password: string): Promise<AuthTokenResponsePassword> {
+        this.supabaseStream$.next(undefined)
         this.userStream$.next(undefined)
 
-        return this.supabase.client.auth
-            .signInWithPassword({ email, password })
-            .then((res) => {
-                if (!res.error && res.data) {
-                    this.supabaseStream$.next(res.data.user)
-                }
-            })
+        try {
+            const res = await this.supabase.client.auth.signInWithPassword({ email, password });
+
+            if(res.data && res.data.user) {
+                this.supabaseStream$.next(res.data.user);
+            }
+
+            return res;
+
+        } catch(e) {
+            this.supabaseStream$.next(null)
+            return {
+                data: { user: null, session: null },
+                error: new AuthError('Could not log in, please try again', 500)
+            }
+        }
     }
 
-    logout() {
-        return this.supabase.client.auth.signOut().then(() => {
-            this.supabaseStream$.next(null)
-        })
+    async logout() {
+        try {
+            await this.supabase.client.auth.signOut();
+            this.supabaseStream$.next(null);
+        } catch(e) {
+            console.warn("Error logging out: ", e)
+            this.supabaseStream$.next(null);
+        }
     }
 }

@@ -9,16 +9,14 @@ import { User } from '../../shared'
     imports: [RouterModule, CommonModule, RouterLink],
     providers: [],
     template: `
-        <nav>
+        <nav class="navbar">
             <ul>
                 <li><strong>ng supabase</strong></li>
             </ul>
-            <ul *ngIf="current; else auth">
-                <li><a href="#">dashboard</a></li>
+            <ul *ngIf="user; else auth">
+                <li><a [routerLink]="['dashboard']">dashboard</a></li>
                 <li><a (click)="logout.emit()">logout</a></li>
-                <li>
-                    <a href="#">{{ current.name }}</a>
-                </li>
+                <li> <span>{{ user.name }}</span></li>
             </ul>
         </nav>
         <ng-template #auth>
@@ -30,6 +28,6 @@ import { User } from '../../shared'
     `,
 })
 export class NavbarComponent {
-    @Input() current!: User | null
+    @Input() user!: User | null
     @Output() logout: EventEmitter<void> = new EventEmitter()
 }

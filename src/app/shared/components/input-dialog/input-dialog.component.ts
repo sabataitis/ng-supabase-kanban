@@ -7,7 +7,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms'
     imports: [ReactiveFormsModule],
     template: `
         <input type="text" [placeholder]="placeholder" [formControl]="fc" #ref />
-        <div>
+        <div class="button-group">
             <button (click)="onSubmit(ref.value)">submit</button>
             <button (click)="onCancel()">cancel</button>
         </div>

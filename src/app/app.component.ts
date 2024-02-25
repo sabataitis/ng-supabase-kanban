@@ -12,7 +12,7 @@ import { User } from './shared'
     imports: [CommonModule, RouterOutlet, NavbarComponent],
     styleUrls: ['./app.component.scss'],
     template: `
-        <app-navbar (logout)="logout()" [current]="currentUser$ | async"></app-navbar>
+        <app-navbar (logout)="logout()" [user]="user$ | async"></app-navbar>
         <main>
             <router-outlet></router-outlet>
         </main>
@@ -22,15 +22,14 @@ import { User } from './shared'
 export class AppComponent implements OnInit {
     constructor(private auth: AuthService, private router: Router) { }
 
-    currentUser$ = this.auth.userObservable$ as Observable<User | null>;
+    user$ = this.auth.userObservable$ as Observable<User | null>;
 
-    ngOnInit() {
-        this.auth.getCurrentSession()
+    async ngOnInit() {
+        await this.auth.getCurrentSession()
     }
 
-    logout() {
-        this.auth.logout().then(() => {
-            this.router.navigate(['login']);
-        });
+    async logout() {
+        await this.auth.logout();
+        this.router.navigate(['login']);
     }
 }

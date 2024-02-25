@@ -3,46 +3,41 @@ import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angu
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../services/auth.service';
+import { AuthTokenResponsePassword } from '@supabase/supabase-js';
 
 @Component({
-  selector: 'app-auth',
-  standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
-  templateUrl: './login.component.html',
+    selector: 'app-auth',
+    standalone: true,
+    imports: [CommonModule, FormsModule, ReactiveFormsModule],
+    templateUrl: './login.component.html',
 })
 export class LoginComponent {
-  loading = false
+    signInForm = this.formBuilder.group({
+        email: ['', Validators.required],
+        password: ['', Validators.required],
+    })
 
-  signInForm = this.formBuilder.group({
-      email: ['', Validators.required],
-      password: ['', Validators.required],
-  })
+    error?: string;
 
-  error?: string;
+    constructor(
+        private auth: AuthService,
+        private route: Router,
+        private formBuilder: FormBuilder,
+    ) { }
 
-  constructor(
-    private auth: AuthService,
-    private route: Router,
-    private formBuilder: FormBuilder,
-  ) {}
+    async onSubmit(): Promise<void> {
+        const form = this.signInForm;
+        if (form.invalid) return;
 
-  onSubmit(): void {
-      const form = this.signInForm;
-      if(form.invalid) return; 
+        const email = this.signInForm.get('email')!.value;
+        const password = this.signInForm.get('password')!.value;
 
-      const email = this.signInForm.get('email')!.value;
-      const password = this.signInForm.get('password')!.value;
+        const res: AuthTokenResponsePassword = await this.auth.login(email!, password!);
 
-      try {
-          this.loading = true;
-          
-          this.auth.login(email!, password!).then(() =>{
-              this.route.navigate(['/dashboard']);
-          });
-      } catch(e: any) {
-          this.error = e.err.message as string;
-      } finally {
-          this.loading = false;
-      }
- }
+        if(res.error) {
+            this.error = res.error.message;
+        } else {
+            this.route.navigate(['/dashboard']);
+        }
+    }
 }

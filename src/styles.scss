@@ -1,3 +1,12 @@
+@use "@picocss/pico/scss/pico";
+
+.navbar {
+    padding: 1rem 0.5rem;
+    a {
+        cursor: pointer;
+    }
+}
+
 .lists, .boards {
     display: grid;
     column-gap: 2rem;
@@ -26,6 +35,11 @@
     color: var(--pico-form-element-color);
     text-overflow: ellipsis;
 }
+
+.button-group {
+    display: flex;
+    gap: 10px;
+};
 
 // import cdk styling for drag and drop
 @import 'cdk.scss'

@@ -25,7 +25,9 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
                 </div>
 
             <ng-container *ngIf="!toggle; else dialog">
-                <button (click)="toggle = !toggle">Add new board</button>
+                <div> 
+                    <button (click)="toggle = !toggle">Add new board</button>
+                </div>
             </ng-container>
         </div>
 
@@ -79,7 +81,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.destroyRef$.next(null)
     }
 
-    onSubmit() {
+    async onSubmit() {
         if (this.form.invalid) return
 
         const formValue = this.form.value
@@ -89,6 +91,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
             created_by: this.userId,
         }
 
-        this.dashboardService.createBoard(payload)
+        await this.dashboardService.createBoard(payload);
+
+        this.toggle = false;
+        this.form.reset();
     }
 }

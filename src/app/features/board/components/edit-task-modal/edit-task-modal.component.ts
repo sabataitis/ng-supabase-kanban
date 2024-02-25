@@ -13,8 +13,8 @@ import {
     ReactiveFormsModule,
     Validators,
 } from '@angular/forms'
-import { Task } from '../../types'
 import { BehaviorSubject } from 'rxjs'
+import { Task } from '../../../../shared'
 
 @Component({
     selector: 'app-edit-task-modal',
